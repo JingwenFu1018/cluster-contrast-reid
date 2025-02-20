@@ -1,0 +1,48 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "train_cc_baseline",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "/cluster/home1/pyf/code/fjw_code/ClusterContrast/examples/cluster_contrast_train_usl.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-b=256",
+                "-a=resnet50",
+                "-d=market1501",
+                "--iters=200",
+                "--momentum=0.1",
+                "--eps=0.6",
+                "--num-instances=16",
+                "--data-dir=/cluster/sata9/pyf/fjw_code/ca-jaccard/data",
+                "--logs-dir=/cluster/sata9/pyf/fjw_code/cc/logs/run0219",
+            ],
+            "env": {"CUDA_VISIBLE_DEVICES": "1,2,3,5"},
+        },
+        {
+            "name": "train_cc_arcresnet50",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "/cluster/home1/pyf/code/fjw_code/ClusterContrast/examples/cluster_contrast_train_usl.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-b=256",
+                "-a=arcresnet50",
+                "-d=market1501",
+                "--iters=200",
+                "--momentum=0.1",
+                "--eps=0.6",
+                "--num-instances=16",
+                "--base-dir=/cluster/sata9/pyf/fjw_code/ca-jaccard",
+                "--data-dir=/cluster/sata9/pyf/fjw_code/ca-jaccard/data",
+                "--logs-dir=/cluster/sata9/pyf/fjw_code/cc/logs/run0219",
+            ],
+            "env": {"CUDA_VISIBLE_DEVICES": "0,1,2,5"},
+        },
+    ]
+}

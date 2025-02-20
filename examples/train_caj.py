@@ -1,14 +1,10 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 from __future__ import print_function, absolute_import
 import argparse
 import os.path as osp
 import random
 import numpy as np
 import sys
-import os
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.append(parent_dir)
 import collections
 import time
 from datetime import timedelta
@@ -21,18 +17,18 @@ from torch.backends import cudnn
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 
-from clustercontrast import datasets
-from clustercontrast import models
-from clustercontrast.models.cm import ClusterMemory
-from clustercontrast.trainers import ClusterContrastTrainer
-from clustercontrast.evaluators import Evaluator, extract_features
-from clustercontrast.utils.data import IterLoader
-from clustercontrast.utils.data import transforms as T
-from clustercontrast.utils.data.preprocessor import Preprocessor
-from clustercontrast.utils.logging import Logger
-from clustercontrast.utils.serialization import load_checkpoint, save_checkpoint
-from clustercontrast.utils.faiss_rerank import compute_jaccard_distance
-from clustercontrast.utils.data.sampler import RandomMultipleGallerySampler, RandomMultipleGallerySamplerNoCam
+from caj import datasets
+from caj import models
+from caj.models.cm import ClusterMemory
+from caj.trainers import ClusterContrastTrainer
+from caj.evaluators import Evaluator, extract_features
+from caj.utils.data import IterLoader
+from caj.utils.data import transforms as T
+from caj.utils.data.preprocessor import Preprocessor
+from caj.utils.logging import Logger
+from caj.utils.serialization import load_checkpoint, save_checkpoint
+from caj.utils.caj_rerank import compute_jaccard_distance
+from caj.utils.data.sampler import RandomMultipleGallerySampler, RandomMultipleGallerySamplerNoCam
 
 start_epoch = best_mAP = 0
 
@@ -45,7 +41,6 @@ def get_data(name, data_dir):
 
 def get_train_loader(args, dataset, height, width, batch_size, workers,
                      num_instances, iters, trainset=None, no_cam=False):
-
     normalizer = T.Normalize(mean=[0.485, 0.456, 0.406],
                              std=[0.229, 0.224, 0.225])
 
@@ -98,8 +93,6 @@ def get_test_loader(dataset, height, width, batch_size, workers, testset=None):
 
 
 def create_model(args):
-    # model = models.create(args.arch, num_features=args.features, norm=True, dropout=args.dropout,
-    #                       num_classes=0, pooling_type=args.pooling_type)
     if "arc" in args.arch:
         model = models.create(args.arch, num_features=args.features, norm=True, dropout=args.dropout,
                               num_classes=0, pooling_type=args.pooling_type,
@@ -139,7 +132,7 @@ def main_worker(args):
 
     cudnn.benchmark = True
 
-    sys.stdout = Logger(osp.join(args.logs_dir, 'log.txt'))
+    sys.stdout = Logger(osp.join(args.base_dir + args.logs_dir, 'log.txt')) 
     print("==========\nArgs:{}\n==========".format(args))
 
     # Create datasets
@@ -151,11 +144,14 @@ def main_worker(args):
     # Create model
     model = create_model(args)
 
+    if args.resume:
+        checkpoint = load_checkpoint(args.resume)
+        model.load_state_dict(checkpoint['state_dict'])
+
     # Evaluator
     evaluator = Evaluator(model)
 
     # Optimizer
-    # params = [{"params": [value]} for _, value in model.named_parameters() if value.requires_grad]
     params = [{"params": [value], "lr": args.lr * args.lr_mult} for name, value in model.named_parameters() if ((value.requires_grad) and ("module.base" in name))  ]
     params += [{"params": [value], "lr": args.lr} for name, value in model.named_parameters() if ((value.requires_grad) and ("module.base" not in name))  ]
     optimizer = torch.optim.Adam(params, lr=args.lr, weight_decay=args.weight_decay)
@@ -176,9 +172,9 @@ def main_worker(args):
             cluster_loader = get_test_loader(dataset, args.height, args.width,
                                              args.batch_size, args.workers, testset=sorted(dataset.train))
 
-            features, _ = extract_features(model, cluster_loader, print_freq=50)
-            features = torch.cat([features[f].unsqueeze(0) for f, _, _ in sorted(dataset.train)], 0)
-            rerank_dist = compute_jaccard_distance(features, k1=args.k1, k2=args.k2)
+            features, labels = extract_features(model, cluster_loader, print_freq=50)
+            features = torch.cat([features[f].unsqueeze(0) for f, _, _ in sorted(dataset.train)], 0) # torch.Size([12936, 2048])
+            rerank_dist = compute_jaccard_distance(features, cam_labels=cam_labels, epoch=epoch, args=args) #(12936,12936)
 
             if epoch == 0:
                 # DBSCAN cluster
@@ -189,8 +185,6 @@ def main_worker(args):
             # select & cluster images as training set of this epochs
             pseudo_labels = cluster.fit_predict(rerank_dist)
             num_cluster = len(set(pseudo_labels)) - (1 if -1 in pseudo_labels else 0)
-
-            # print("epoch: {} \n pseudo_labels: {}".format(epoch, pseudo_labels.tolist()[:100]))
 
         # generate new dataset and calculate cluster centers
         @torch.no_grad()
@@ -214,7 +208,7 @@ def main_worker(args):
 
         # Create hybrid memory
         memory = ClusterMemory(model.module.num_features, num_cluster, temp=args.temp,
-                               momentum=args.momentum, use_hard=args.use_hard).cuda()
+                               momentum=args.momentum).cuda()
         memory.features = F.normalize(cluster_features, dim=1).cuda()
 
         trainer.memory = memory
@@ -224,7 +218,9 @@ def main_worker(args):
             if label != -1:
                 pseudo_labeled_dataset.append((fname, label.item(), cid))
 
-        print('==> Statistics for epoch {}: {} clusters'.format(epoch, num_cluster))
+        num_outlier = len(dataset.train) - len(pseudo_labeled_dataset)
+        print(
+            '==> Statistics for epoch {}: {} clusters, {} un-cluster instances'.format(epoch, num_cluster, num_outlier))
 
         train_loader = get_train_loader(args, dataset, args.height, args.width,
                                         args.batch_size, args.workers, args.num_instances, iters,
@@ -235,7 +231,7 @@ def main_worker(args):
         trainer.train(epoch, train_loader, optimizer,
                       print_freq=args.print_freq, train_iters=len(train_loader))
 
-        if (epoch + 1) % args.eval_step == 0 or (epoch == args.epochs - 1):
+        if (epoch + 1) % args.eval_step == 0 or (epoch == args.epochs - 1) or (epoch >= 40):
             mAP = evaluator.evaluate(test_loader, dataset.query, dataset.gallery, cmc_flag=False)
             is_best = (mAP > best_mAP)
             best_mAP = max(mAP, best_mAP)
@@ -243,7 +239,7 @@ def main_worker(args):
                 'state_dict': model.state_dict(),
                 'epoch': epoch + 1,
                 'best_mAP': best_mAP,
-            }, is_best, fpath=osp.join(args.logs_dir, 'checkpoint.pth.tar'))
+            }, is_best, fpath=osp.join(args.base_dir + args.logs_dir, 'checkpoint.pth.tar'))
 
             print('\n * Finished epoch {:3d}  model mAP: {:5.1%}  best: {:5.1%}{}\n'.
                   format(epoch, mAP, best_mAP, ' *' if is_best else ''))
@@ -251,7 +247,7 @@ def main_worker(args):
         lr_scheduler.step()
 
     print('==> Test with the best model:')
-    checkpoint = load_checkpoint(osp.join(args.logs_dir, 'model_best.pth.tar'))
+    checkpoint = load_checkpoint(osp.join(args.base_dir + args.logs_dir, 'model_best.pth.tar'))
     model.load_state_dict(checkpoint['state_dict'])
     evaluator.evaluate(test_loader, dataset.query, dataset.gallery, cmc_flag=True)
 
@@ -260,36 +256,29 @@ def main_worker(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Self-paced contrastive learning on unsupervised re-ID")
+    parser = argparse.ArgumentParser(description="CA-Jaccard: Camera-aware Jaccard Distance for Person Re-identification")
     # data
-    parser.add_argument('-d', '--dataset', type=str, default='dukemtmcreid',
+    parser.add_argument('-d', '--dataset', type=str, default='market1501',
                         choices=datasets.names())
-    parser.add_argument('-b', '--batch-size', type=int, default=2)
+    parser.add_argument('-b', '--batch-size', type=int, default=256)
     parser.add_argument('-j', '--workers', type=int, default=4)
     parser.add_argument('--height', type=int, default=256, help="input height")
     parser.add_argument('--width', type=int, default=128, help="input width")
-    parser.add_argument('--num-instances', type=int, default=4,
+    parser.add_argument('--num-instances', type=int, default=16,
                         help="each minibatch consist of "
                              "(batch_size // num_instances) identities, and "
                              "each identity has num_instances instances, "
                              "default: 0 (NOT USE)")
-    # cluster
-    parser.add_argument('--eps', type=float, default=0.6,
-                        help="max neighbor distance for DBSCAN")
-    parser.add_argument('--eps-gap', type=float, default=0.02,
-                        help="multi-scale criterion for measuring cluster reliability")
-    parser.add_argument('--k1', type=int, default=30,
-                        help="hyperparameter for jaccard distance")
-    parser.add_argument('--k2', type=int, default=6,
-                        help="hyperparameter for jaccard distance")
 
     # model
     parser.add_argument('-a', '--arch', type=str, default='resnet50',
                         choices=models.names())
     parser.add_argument('--features', type=int, default=0)
     parser.add_argument('--dropout', type=float, default=0)
-    parser.add_argument('--momentum', type=float, default=0.2,
+    parser.add_argument('--momentum', type=float, default=0.1,
                         help="update momentum for the hybrid memory")
+    parser.add_argument('--resume', type=str, default='')
+
     # optimizer
     parser.add_argument('--lr', type=float, default=0.00035,
                         help="learning rate")
@@ -297,12 +286,12 @@ if __name__ == '__main__':
                         help="backbone learning rate decay ratio")
     parser.add_argument('--weight-decay', type=float, default=5e-4)
     parser.add_argument('--epochs', type=int, default=50)
-    parser.add_argument('--iters', type=int, default=400)
+    parser.add_argument('--iters', type=int, default=200)
     parser.add_argument('--step-size', type=int, default=20)
     # training configs
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--print-freq', type=int, default=10)
-    parser.add_argument('--eval-step', type=int, default=10)
+    parser.add_argument('--eval-step', type=int, default=4)
     parser.add_argument('--temp', type=float, default=0.05,
                         help="temperature for scaling contrastive loss")
     # path
@@ -311,9 +300,28 @@ if __name__ == '__main__':
                         default=osp.join(working_dir, 'data'))
     parser.add_argument('--logs-dir', type=str, metavar='PATH',
                         default=osp.join(working_dir, 'logs'))
-    parser.add_argument('--pooling-type', type=str, default='gem')
-    parser.add_argument('--use-hard', action="store_true")
-    parser.add_argument('--no-cam',  action="store_true")
-    parser.add_argument('--base-dir', type=str,help="pretrained arcresnet50 path prefix")
+    parser.add_argument('--base-dir', type=str)
 
+    parser.add_argument('--pooling-type', type=str, default='avg')
+    parser.add_argument('--no-cam', action="store_true")
+
+    # cluster
+    parser.add_argument('--eps', type=float, default=0.6,
+                        help="max neighbor distance for DBSCAN")
+
+    # Jaccard
+    parser.add_argument('--k1', type=int, default=30,
+                        help="hyperparameter for jaccard distance")
+    parser.add_argument('--k2', type=int, default=6,
+                        help="hyperparameter for jaccard distance")
+
+    # CKRNNs
+    parser.add_argument('--ckrnns', action='store_true')
+    parser.add_argument('--k1-intra', type=int, default=5)
+    parser.add_argument('--k1-inter', type=int, default=20)
+
+    # CLQE
+    parser.add_argument('--clqe', action='store_true')
+    parser.add_argument('--k2-intra', type=int, default=3)
+    parser.add_argument('--k2-inter', type=int, default=3)
     main()
