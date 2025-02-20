@@ -32,7 +32,7 @@ def _process_dir(dir_path, relabel=False):
 
 
 class MSMT17(BaseImageDataset):
-    dataset_dir = 'MSMT17_V1'
+    dataset_dir = 'MSMT17_V2'
 
     def __init__(self, root, verbose=True, **kwargs):
         super(MSMT17, self).__init__()
@@ -48,7 +48,7 @@ class MSMT17(BaseImageDataset):
         gallery = _process_dir(self.gallery_dir, relabel=False)
 
         if verbose:
-            print("=> MSMT17_V1 loaded")
+            print("=> MSMT17_V2 loaded")
             self.print_dataset_statistics(train, query, gallery)
 
             self.train = train

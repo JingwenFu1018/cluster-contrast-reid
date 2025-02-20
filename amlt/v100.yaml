@@ -27,8 +27,9 @@ storage:
     mount_dir: /blob
 
 jobs:
-  # - name: agent_deit_diff01_t_100ep_TRY2
-  #   sku: 1x32G8-V100
+
+  # - name: RS_CC_market1501_0220_1947
+  #   sku: 1x32G4-V100
   #   mpi: true
   #   priority: high
   #   sla_tier: Premium
@@ -46,82 +47,20 @@ jobs:
   #     - ls /usr/local/
   #     - pip list
   #     - echo "------------------------------------------------------ install_apps"
-  #     - pip install yacs einops termcolor wandb
-  #     - pip install timm==0.4.12
+  #     - pip install scikit-learn
+  #     - pip install einops
+  #     - pip install faiss_gpu
+  #     - pip install numpy==1.23.5
   #     - echo "install complete----------------------------------------------"
   #     - nvidia-smi
-  #     - python -m torch.distributed.launch --nproc_per_node=8 main.py 
-  #       --cfg cfgs/agent_deit_diff01_t_100ep.yaml
-  #       --wandb_name agent_deit_diff01_t_100ep_TRY2
-  #       --data-path /blob/tuts/data/imagenet/
-  #       --output /blob/tuts/work_dirs/linear_differential/agent_deit_diff01_t_100ep_TRY2/  
-  #   process_count_per_node: 1
+  #     - python examples/cluster_contrast_train_usl.py
+  #       -b=256 -a=arcresnet50
+  #       -d=market1501 --iters=200 --momentum=0.1 --eps=0.6 --num-instances=16
+  #       --base-dir=/blob/tuts/work_dirs/arc_reid
+  #       --data-dir=/blob/tuts/data
+  #       --logs-dir=/blob/tuts/work_dirs/CC_reid/logs/RS_CC_market1501_arcresnet50_0220_1947
 
-
-  # - name: agent_deit_diff06_3_t_300ep_bs512_TRY1
-  #   sku: 1x32G8-V100
-  #   mpi: true
-  #   priority: high
-  #   sla_tier: Premium
-  #   execution_mode: basic
-  #   azml_int: True
-  #   process_count_per_node: 1
-  #   identity: managed
-  #   submit_args:
-  #     env:
-  #       _AZUREML_SINGULARITY_JOB_UAI: /subscriptions/2383bd50-2ae6-4fed-8d67-b699097f8e10/resourcegroups/facevc/providers/Microsoft.ManagedIdentity/userAssignedIdentities/facevc-uami 
-  #   command:
-  #     - pwd
-  #     - ls
-  #     - echo "------------------------------------------------------ device information"
-  #     - ls /usr/local/
-  #     - pip list
-  #     - echo "------------------------------------------------------ install_apps"
-  #     - pip install yacs einops termcolor wandb
-  #     - pip install timm==0.4.12
-  #     - echo "install complete----------------------------------------------"
-  #     - nvidia-smi
-  #     - python -m torch.distributed.launch --nproc_per_node=8 main.py 
-  #       --cfg cfgs/agent_deit_diff06_3_t_300ep_bs512.yaml
-  #       --wandb_name agent_deit_diff06_3_t_300ep_bs512_TRY1
-  #       --data-path /blob/tuts/data/imagenet/
-  #       --output /blob/tuts/work_dirs/linear_differential/agent_deit_diff06_3_t_300ep_bs512_TRY1/
-
-
-
-  - name: RS_CC_market1501_0220_1947
-    sku: 1x32G4-V100
-    mpi: true
-    priority: high
-    sla_tier: Premium
-    execution_mode: basic
-    azml_int: True
-    process_count_per_node: 1
-    identity: managed
-    submit_args:
-      env:
-        _AZUREML_SINGULARITY_JOB_UAI: /subscriptions/2383bd50-2ae6-4fed-8d67-b699097f8e10/resourcegroups/facevc/providers/Microsoft.ManagedIdentity/userAssignedIdentities/facevc-uami 
-    command:
-      - pwd
-      - ls
-      - echo "------------------------------------------------------ device information"
-      - ls /usr/local/
-      - pip list
-      - echo "------------------------------------------------------ install_apps"
-      - pip install scikit-learn
-      - pip install einops
-      - pip install faiss_gpu
-      - pip install numpy==1.23.5
-      - echo "install complete----------------------------------------------"
-      - nvidia-smi
-      - python examples/cluster_contrast_train_usl.py
-        -b=256 -a=arcresnet50
-        -d=market1501 --iters=200 --momentum=0.1 --eps=0.6 --num-instances=16
-        --base-dir=/blob/tuts/work_dirs/arc_reid
-        --data-dir=/blob/tuts/data
-        --logs-dir=/blob/tuts/work_dirs/CC_reid/logs/RS_CC_market1501_arcresnet50_0220_1947
-
-  - name: RS_CC_msmt_0220_1947
+  - name: RS_CC_msmt_0220_2121_v2
     sku: 1x32G4-V100
     mpi: true
     priority: high
@@ -151,40 +90,40 @@ jobs:
         -d=msmt17 --iters=400 --momentum=0.1 --eps=0.6 --num-instances=16
         --base-dir=/blob/tuts/work_dirs/arc_reid
         --data-dir=/blob/tuts/data
-        --logs-dir=/blob/tuts/work_dirs/CC_reid/logs/RS_CC_msmt_arcresnet50_0220_1947
+        --logs-dir=/blob/tuts/work_dirs/CC_reid/logs/RS_CC_msmt_arcresnet50_0220_2121_v2
 
-  - name: RS_CC_veri776_0220_1947
-    sku: 1x32G4-V100
-    mpi: true
-    priority: high
-    sla_tier: Premium
-    execution_mode: basic
-    azml_int: True
-    process_count_per_node: 1
-    identity: managed
-    submit_args:
-      env:
-        _AZUREML_SINGULARITY_JOB_UAI: /subscriptions/2383bd50-2ae6-4fed-8d67-b699097f8e10/resourcegroups/facevc/providers/Microsoft.ManagedIdentity/userAssignedIdentities/facevc-uami 
-    command:
-      - pwd
-      - ls
-      - echo "------------------------------------------------------ device information"
-      - ls /usr/local/
-      - pip list
-      - echo "------------------------------------------------------ install_apps"
-      - pip install scikit-learn
-      - pip install einops
-      - pip install faiss_gpu
-      - pip install numpy==1.23.5
-      - echo "install complete----------------------------------------------"
-      - nvidia-smi
-      - python examples/cluster_contrast_train_usl.py
-        -b=256 -a=arcresnet50
-        -d=veri --iters=400 --momentum=0.1 --eps=0.6 --num-instances=16
-        --height=224 --width=224
-        --base-dir=/blob/tuts/work_dirs/arc_reid
-        --data-dir=/blob/tuts/data
-        --logs-dir=/blob/tuts/work_dirs/CC_reid/logs/RS_CC_veri_arcresnet50_0220_1947
+  # - name: RS_CC_veri776_0220_1947
+  #   sku: 1x32G4-V100
+  #   mpi: true
+  #   priority: high
+  #   sla_tier: Premium
+  #   execution_mode: basic
+  #   azml_int: True
+  #   process_count_per_node: 1
+  #   identity: managed
+  #   submit_args:
+  #     env:
+  #       _AZUREML_SINGULARITY_JOB_UAI: /subscriptions/2383bd50-2ae6-4fed-8d67-b699097f8e10/resourcegroups/facevc/providers/Microsoft.ManagedIdentity/userAssignedIdentities/facevc-uami 
+  #   command:
+  #     - pwd
+  #     - ls
+  #     - echo "------------------------------------------------------ device information"
+  #     - ls /usr/local/
+  #     - pip list
+  #     - echo "------------------------------------------------------ install_apps"
+  #     - pip install scikit-learn
+  #     - pip install einops
+  #     - pip install faiss_gpu
+  #     - pip install numpy==1.23.5
+  #     - echo "install complete----------------------------------------------"
+  #     - nvidia-smi
+  #     - python examples/cluster_contrast_train_usl.py
+  #       -b=256 -a=arcresnet50
+  #       -d=veri --iters=400 --momentum=0.1 --eps=0.6 --num-instances=16
+  #       --height=224 --width=224
+  #       --base-dir=/blob/tuts/work_dirs/arc_reid
+  #       --data-dir=/blob/tuts/data
+  #       --logs-dir=/blob/tuts/work_dirs/CC_reid/logs/RS_CC_veri_arcresnet50_0220_1947
 
   # - name: RS_jaccard_0219_msmt
   #   sku: 1x32G4-V100
