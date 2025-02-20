@@ -89,7 +89,7 @@ jobs:
 
 
 
-  - name: RS_CC_market1501
+  - name: RS_CC_market1501_0220_1947
     sku: 1x32G4-V100
     mpi: true
     priority: high
@@ -119,9 +119,9 @@ jobs:
         -d=market1501 --iters=200 --momentum=0.1 --eps=0.6 --num-instances=16
         --base-dir=/blob/tuts/work_dirs/arc_reid
         --data-dir=/blob/tuts/data
-        --logs-dir=/blob/tuts/work_dirs/CC_reid/logs/RS_CC_market1501_arcresnet50
+        --logs-dir=/blob/tuts/work_dirs/CC_reid/logs/RS_CC_market1501_arcresnet50_0220_1947
 
-  - name: RS_CC_msmt
+  - name: RS_CC_msmt_0220_1947
     sku: 1x32G4-V100
     mpi: true
     priority: high
@@ -151,9 +151,9 @@ jobs:
         -d=msmt17 --iters=400 --momentum=0.1 --eps=0.6 --num-instances=16
         --base-dir=/blob/tuts/work_dirs/arc_reid
         --data-dir=/blob/tuts/data
-        --logs-dir=/blob/tuts/work_dirs/CC_reid/logs/RS_CC_msmt_arcresnet50
+        --logs-dir=/blob/tuts/work_dirs/CC_reid/logs/RS_CC_msmt_arcresnet50_0220_1947
 
-  - name: RS_CC_veri776
+  - name: RS_CC_veri776_0220_1947
     sku: 1x32G4-V100
     mpi: true
     priority: high
@@ -184,7 +184,7 @@ jobs:
         --height=224 --width=224
         --base-dir=/blob/tuts/work_dirs/arc_reid
         --data-dir=/blob/tuts/data
-        --logs-dir=/blob/tuts/work_dirs/CC_reid/logs/RS_CC_veri_arcresnet50
+        --logs-dir=/blob/tuts/work_dirs/CC_reid/logs/RS_CC_veri_arcresnet50_0220_1947
 
   # - name: RS_jaccard_0219_msmt
   #   sku: 1x32G4-V100
