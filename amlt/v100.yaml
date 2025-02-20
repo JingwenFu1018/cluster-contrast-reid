@@ -1,0 +1,217 @@
+description: arcreid
+
+#sing
+target:
+  service: sing
+  name: msrresrchlab
+  workspace_name: facevcws
+
+environment:
+  registry: singularitybase.azurecr.io
+  image: base/job/pytorch/acpt-2.2.1-py3.10-cuda12.1:20240312T225111416  # pytorch 2.2.1, cuda 12.1, python 3.10
+
+
+code:
+  local_dir: $CONFIG_DIR/../
+
+# storage:
+#     openseg_blob:
+#         storage_account_name: openseg
+#         container_name: openseg-aml
+#         mount_dir: /openseg_blob
+
+storage:
+  my_storage:
+    storage_account_name: facevcstandard
+    container_name: v-qixiuli
+    mount_dir: /blob
+
+jobs:
+  # - name: agent_deit_diff01_t_100ep_TRY2
+  #   sku: 1x32G8-V100
+  #   mpi: true
+  #   priority: high
+  #   sla_tier: Premium
+  #   execution_mode: basic
+  #   azml_int: True
+  #   process_count_per_node: 1
+  #   identity: managed
+  #   submit_args:
+  #     env:
+  #       _AZUREML_SINGULARITY_JOB_UAI: /subscriptions/2383bd50-2ae6-4fed-8d67-b699097f8e10/resourcegroups/facevc/providers/Microsoft.ManagedIdentity/userAssignedIdentities/facevc-uami 
+  #   command:
+  #     - pwd
+  #     - ls
+  #     - echo "------------------------------------------------------ device information"
+  #     - ls /usr/local/
+  #     - pip list
+  #     - echo "------------------------------------------------------ install_apps"
+  #     - pip install yacs einops termcolor wandb
+  #     - pip install timm==0.4.12
+  #     - echo "install complete----------------------------------------------"
+  #     - nvidia-smi
+  #     - python -m torch.distributed.launch --nproc_per_node=8 main.py 
+  #       --cfg cfgs/agent_deit_diff01_t_100ep.yaml
+  #       --wandb_name agent_deit_diff01_t_100ep_TRY2
+  #       --data-path /blob/tuts/data/imagenet/
+  #       --output /blob/tuts/work_dirs/linear_differential/agent_deit_diff01_t_100ep_TRY2/  
+  #   process_count_per_node: 1
+
+
+  # - name: agent_deit_diff06_3_t_300ep_bs512_TRY1
+  #   sku: 1x32G8-V100
+  #   mpi: true
+  #   priority: high
+  #   sla_tier: Premium
+  #   execution_mode: basic
+  #   azml_int: True
+  #   process_count_per_node: 1
+  #   identity: managed
+  #   submit_args:
+  #     env:
+  #       _AZUREML_SINGULARITY_JOB_UAI: /subscriptions/2383bd50-2ae6-4fed-8d67-b699097f8e10/resourcegroups/facevc/providers/Microsoft.ManagedIdentity/userAssignedIdentities/facevc-uami 
+  #   command:
+  #     - pwd
+  #     - ls
+  #     - echo "------------------------------------------------------ device information"
+  #     - ls /usr/local/
+  #     - pip list
+  #     - echo "------------------------------------------------------ install_apps"
+  #     - pip install yacs einops termcolor wandb
+  #     - pip install timm==0.4.12
+  #     - echo "install complete----------------------------------------------"
+  #     - nvidia-smi
+  #     - python -m torch.distributed.launch --nproc_per_node=8 main.py 
+  #       --cfg cfgs/agent_deit_diff06_3_t_300ep_bs512.yaml
+  #       --wandb_name agent_deit_diff06_3_t_300ep_bs512_TRY1
+  #       --data-path /blob/tuts/data/imagenet/
+  #       --output /blob/tuts/work_dirs/linear_differential/agent_deit_diff06_3_t_300ep_bs512_TRY1/
+
+
+
+  - name: RS_CC_market1501
+    sku: 1x32G4-V100
+    mpi: true
+    priority: high
+    sla_tier: Premium
+    execution_mode: basic
+    azml_int: True
+    process_count_per_node: 1
+    identity: managed
+    submit_args:
+      env:
+        _AZUREML_SINGULARITY_JOB_UAI: /subscriptions/2383bd50-2ae6-4fed-8d67-b699097f8e10/resourcegroups/facevc/providers/Microsoft.ManagedIdentity/userAssignedIdentities/facevc-uami 
+    command:
+      - pwd
+      - ls
+      - echo "------------------------------------------------------ device information"
+      - ls /usr/local/
+      - pip list
+      - echo "------------------------------------------------------ install_apps"
+      - pip install scikit-learn
+      - pip install einops
+      - pip install faiss_gpu
+      - pip install numpy==1.23.5
+      - echo "install complete----------------------------------------------"
+      - nvidia-smi
+      - python examples/cluster_contrast_train_usl.py
+        -b=256 -a=arcresnet50
+        -d=market1501 --iters=200 --momentum=0.1 --eps=0.6 --num-instances=16
+        --base-dir=/blob/tuts/work_dirs/arc_reid
+        --data-dir=/blob/tuts/data
+        --logs-dir=/CC_reid/logs/RS_CC_market1501_arcresnet50
+
+  - name: RS_CC_msmt
+    sku: 1x32G4-V100
+    mpi: true
+    priority: high
+    sla_tier: Premium
+    execution_mode: basic
+    azml_int: True
+    process_count_per_node: 1
+    identity: managed
+    submit_args:
+      env:
+        _AZUREML_SINGULARITY_JOB_UAI: /subscriptions/2383bd50-2ae6-4fed-8d67-b699097f8e10/resourcegroups/facevc/providers/Microsoft.ManagedIdentity/userAssignedIdentities/facevc-uami 
+    command:
+      - pwd
+      - ls
+      - echo "------------------------------------------------------ device information"
+      - ls /usr/local/
+      - pip list
+      - echo "------------------------------------------------------ install_apps"
+      - pip install scikit-learn
+      - pip install einops
+      - pip install faiss_gpu
+      - pip install numpy==1.23.5
+      - echo "install complete----------------------------------------------"
+      - nvidia-smi
+      - python examples/cluster_contrast_train_usl.py
+        -b=256 -a=arcresnet50
+        -d=msmt17 --iters=400 --momentum=0.1 --eps=0.6 --num-instances=16
+        --base-dir=/blob/tuts/work_dirs/arc_reid
+        --data-dir=/blob/tuts/data
+        --logs-dir=/CC_reid/logs/RS_CC_msmt_arcresnet50
+
+  - name: RS_CC_veri776
+    sku: 1x32G4-V100
+    mpi: true
+    priority: high
+    sla_tier: Premium
+    execution_mode: basic
+    azml_int: True
+    process_count_per_node: 1
+    identity: managed
+    submit_args:
+      env:
+        _AZUREML_SINGULARITY_JOB_UAI: /subscriptions/2383bd50-2ae6-4fed-8d67-b699097f8e10/resourcegroups/facevc/providers/Microsoft.ManagedIdentity/userAssignedIdentities/facevc-uami 
+    command:
+      - pwd
+      - ls
+      - echo "------------------------------------------------------ device information"
+      - ls /usr/local/
+      - pip list
+      - echo "------------------------------------------------------ install_apps"
+      - pip install scikit-learn
+      - pip install einops
+      - pip install faiss_gpu
+      - pip install numpy==1.23.5
+      - echo "install complete----------------------------------------------"
+      - nvidia-smi
+      - python examples/cluster_contrast_train_usl.py
+        -b=256 -a=arcresnet50
+        -d=veri --iters=400 --momentum=0.1 --eps=0.6 --num-instances=16
+        --height=224 --width=224
+        --base-dir=/blob/tuts/work_dirs/arc_reid
+        --data-dir=/blob/tuts/data
+        --logs-dir=/CC_reid/logs/RS_CC_veri_arcresnet50
+
+  # - name: RS_jaccard_0219_msmt
+  #   sku: 1x32G4-V100
+  #   mpi: true
+  #   priority: high
+  #   sla_tier: Premium
+  #   execution_mode: basic
+  #   azml_int: True
+  #   process_count_per_node: 1
+  #   identity: managed
+  #   submit_args:
+  #     env:
+  #       _AZUREML_SINGULARITY_JOB_UAI: /subscriptions/2383bd50-2ae6-4fed-8d67-b699097f8e10/resourcegroups/facevc/providers/Microsoft.ManagedIdentity/userAssignedIdentities/facevc-uami 
+  #   command:
+  #     - pwd
+  #     - ls
+  #     - echo "------------------------------------------------------ device information"
+  #     - ls /usr/local/
+  #     - pip list
+  #     - echo "------------------------------------------------------ install_apps"
+  #     - pip install scikit-learn
+  #     - pip install einops
+  #     - echo "install complete----------------------------------------------"
+  #     - nvidia-smi
+  #     - python train_caj.py
+  #       -d=msmt17 --arch=arcresnet50  
+  #       --eps=0.6  --iters=400 --ckrnns --clqe --k2-intra=2 --k2-inter=4 --lr_mult=1 
+  #       --base-dir=/blob/tuts/work_dirs/arc_reid
+  #       --data-dir=/blob/tuts/data
+  #       --logs-dir=/logs/run0219_msmt
